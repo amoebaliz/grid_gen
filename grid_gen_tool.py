@@ -30,12 +30,13 @@ class Click():
         self.press=False; self.move=False
 
 def calc_dist(glon_A1,glat_A1,glon_B1,glat_B1):
+    global x_sign
     # Distance Calculation
     rlat_A1 = radians(glat_A1)
     rlon_A1 = radians(glon_A1)
     rlat_B1 = radians(glat_B1)
     rlon_B1 = radians(glon_B1)
-
+  
     d_rlon = rlon_B1 - rlon_A1
     d_rlat = rlat_B1 - rlat_A1
 
@@ -45,49 +46,30 @@ def calc_dist(glon_A1,glat_A1,glon_B1,glat_B1):
     c = 2 * atan2(sqrt(a), sqrt(1 - a))
     distance = Re * c
 
-    # Calculate rotation matrices
-
-    # Rotates second point to Prime Meridian
+    # Calculate Rotation Matrices:
+    # Rotate first point to Prime Meridian
     R1 = np.array((( cos(rlon_A1), sin(rlon_A1), 0),\
                    (-sin(rlon_A1), cos(rlon_A1), 0),\
                    ( 0           , 0           , 1)))
 
-    # Rotates second point to equator
-    R2 = np.array(((cos(rlat_A1),  0, sin(rlat_A1)),\
-                   (0           ,  1, 0           ),\
-                   (sin(-rlat_A1), 0, cos(rlat_A1))))
+    # Rotates first point to equator
+    R2 = np.array((( cos(rlat_A1), 0, sin(rlat_A1)),\
+                   ( 0           , 1, 0           ),\
+                   (-sin(rlat_A1), 0, cos(rlat_A1))))
 
-    # Original 3D Coordinates of points
-    A1 = coord_3D(rlon_A1, rlat_A1)
-        
+    # Original 3D (x,y,z) coordinates of A and B
+    A1 = coord_3D(rlon_A1, rlat_A1)        
     B1 = coord_3D(rlon_B1, rlat_B1)
-    # once-rotated 3D Coordinates of points
-    A2 = np.dot(R1,A1) 
-    
-    B2 = np.dot(R1,B1) 
-    # Lat/Lon of twice-rotated first point       
-    rlat_A2, rlon_A2 = new_latlon(A2[0],A2[1],A2[2])
 
-    rlat_B2, rlon_B2 = new_latlon(B2[0],B2[1],B2[2])
-
-    #m.plot(degrees(rlon_A2),degrees(rlat_A2),'mo')
-    #m.plot(degrees(rlon_B2),degrees(rlat_B2),'ro')
-    #plt.draw()      
-    # Twice-rotated 3D Coordinates of first point
+    # Twice-rotated 3D Coordinates of A and B
     A2 = np.dot(R2,np.dot(R1,A1)) 
-       
     B2 = np.dot(R2,np.dot(R1,B1)) 
-    # Lat/Lon of twice-rotated first point       
-    rlat_A2, rlon_A2 = new_latlon(A2[0],A2[1],A2[2])
 
+    # Lat/Lon of twice-rotated A and B     
+    rlat_A2, rlon_A2 = new_latlon(A2[0],A2[1],A2[2])
     rlat_B2, rlon_B2 = new_latlon(B2[0],B2[1],B2[2])
 
-    #m.plot(degrees(rlon_A2),degrees(rlat_A2),'mo')
-    #m.plot(degrees(rlon_B2),degrees(rlat_B2),'ro')
-    #plt.draw()
-    #plt.show()
-
-    # Calculate angle theta between A2 and equator
+    #Calculate angle theta between A2 and equator
     d = (cos(rlat_B2)-cos(rlon_B2)*cos(distance/Re))/ \
         (sin(rlon_B2)*sin(distance/Re))
     if glat_B1-glat_A1 == 0:
@@ -96,57 +78,11 @@ def calc_dist(glon_A1,glat_A1,glon_B1,glat_B1):
        x_sign=np.sign(glat_B1-glat_A1)
 
     theta = x_sign*acos(d)
-    print theta   
+
     # Rotates first point to equator
-    R3 = np.array(((1,              0,              0),\
-                   (0,  np.cos(theta),  np.sin(theta)),\
-                   (0, np.sin(-theta), np.cos(theta)))) 
-
-    #A3 = np.dot(R3,np.dot(R2,np.dot(R1,A1)))
-
-    #B3 = np.dot(R3,np.dot(R2,np.dot(R1,B1)))
-    #rlat_A3, rlon_A3 = new_latlon(A3[0],A3[1],A3[2])
-
-    #rlat_B3, rlon_B3 = new_latlon(B3[0],B3[1],B3[2])
-
-    #m.plot(degrees(rlon_A3),degrees(rlat_A3),'bo',latlon=True)
-    #m.plot(degrees(rlon_B3),degrees(rlat_B3),'bo',latlon=True)
-    #plt.draw()
-
-    # BACK ROTATION CHECK
-    #B2 = np.dot(inv(R3),B3)
-
-    #A2 = np.dot(inv(R3),A3) 
-    #rlat_A2, rlon_A2 = new_latlon(A2[0],A2[1],A2[2])
-
-    #rlat_B2, rlon_B2 = new_latlon(B2[0],B2[1],B2[2])
-
-    #m.plot(degrees(rlon_A2),degrees(rlat_A2),'mo',latlon=True)
-    #m.plot(degrees(rlon_B2),degrees(rlat_B2),'mo',latlon=True)
-    #plt.draw()
-
-    #B1 = np.dot(inv(R2),B2) 
-
-    #A1 = np.dot(inv(R2),A2) 
-    #rlat_A1, rlon_A1 = new_latlon(A1[0],A1[1],A1[2])
-
-    #rlat_B1, rlon_B1 = new_latlon(B1[0],B1[1],B1[2])
-
-    #m.plot(degrees(rlon_A1),degrees(rlat_A1),'ko',latlon=True)
-    #m.plot(degrees(rlon_B1),degrees(rlat_B1),'ko',latlon=True)
-    #plt.draw()
-
-    #B0 = np.dot(inv(R1),B1) 
-
-    #A0 = np.dot(inv(R1),A1) 
-    #rlat_A0, rlon_A0 = new_latlon(A0[0],A0[1],A0[2])
-
-    #rlat_B0, rlon_B0 = new_latlon(B0[0],B0[1],B0[2])
-
-    #m.plot(degrees(rlon_A0),degrees(rlat_A0),'go',latlon=True)
-    #m.plot(degrees(rlon_B0),degrees(rlat_B0),'go',latlon=True)
-    #plt.draw()
-
+    R3 = np.array(((1,              0,             0),\
+                   (0,  np.cos(theta), np.sin(theta)),\
+                   (0, -np.sin(theta), np.cos(theta)))) 
         
     return distance, R1, R2, R3 
 
@@ -168,12 +104,10 @@ def grid_gen(event):
     #	   (becomes A'B')
     #	3) Calculate grid positions along A'B' given resolution and 
     #      starting at (0,0); ceil(dist(AB)/resolution). 
-    #   4) Plot R1-1 R2-1 A'B' and new points
+    #   4) Plot inv(R1)*inv(R2)*inv(R3)*A'B' and new points
   
     elif MEEP<2:
-       # Generate Rotation Matrices Based on lat/lons
        
-       #m.drawgreatcircle(glon_A1, glat_A1, event.xdata, event.ydata,del_s=10,color='k', lw=2.)
        init_distance, R1, R2, R3 = calc_dist(glon_A1,glat_A1,c_glon,c_glat)
 
        npts = int(abs(np.ceil(init_distance/grid_res)))+1 
@@ -183,13 +117,12 @@ def grid_gen(event):
        rlons_3 = (grid_res/Re)*np.arange(npts)
 
        # Along equator all points are at lat = 0
-
        # Get x,y,z coordinates
        X3 = coord_3D(rlons_3, np.zeros(npts))
+
        # Rotate back to original position
-       X1 = np.dot(inv(R3),X3)
-       X1 = np.dot(inv(R2),np.dot(inv(R3),X3))
        X1 = np.dot(inv(R1),np.dot(inv(R2),np.dot(inv(R3),X3)))
+
        # Convert to geographic coordinates and plot
        glats = np.zeros(npts) 
        glons = np.zeros(npts)
@@ -245,12 +178,14 @@ def grid_gen(event):
  
          rlons_3 = np.tile(rlons_3,(npts,1))
          rlats_3 = merid_dir*np.tile((grid_res/Re)*np.arange(npts).reshape(npts,1),(1,rlons_3.shape[1]))
+
          X3 = coord_3D(rlons_3, rlats_3)
 
          nj = X3.shape[1]
          ni = X3.shape[2]
 
          X3 = X3.reshape(3,nj*ni)
+         
          # Rotate back to original position
          X1 = np.dot(inv(R1),np.dot(inv(R2),np.dot(inv(R3),X3)))
          X1 = X1.reshape(3,nj,ni)
@@ -261,7 +196,7 @@ def grid_gen(event):
          for jj in range(nj):
              for ii in range(ni):
                  lat, lon = new_latlon(X1[0,jj,ii], X1[1,jj,ii], X1[2,jj,ii])
-
+                 
                  glats[jj,ii] = degrees(lat)
                  glons[jj,ii] = degrees(lon)
 
@@ -283,7 +218,7 @@ def coord_3D(rlon,rlat):
 def new_latlon(x,y,z):
     lat = asin(z/np.abs(Re))
     lon = atan(y/x)
-
+    if x<0: lon+=np.pi 
     return lat,lon
 
 MEEP=0

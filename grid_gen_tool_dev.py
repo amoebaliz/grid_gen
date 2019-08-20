@@ -4,6 +4,7 @@ import numpy as np
 from numpy.linalg import inv
 from math import sin, cos, sqrt, atan2, asin, acos, atan, degrees, radians 
 import time
+
 class Click():
     def __init__(self, ax, func, button=1):
         self.ax=ax
@@ -28,6 +29,52 @@ class Click():
         if self.press and not self.move:
             self.onclick(event)
         self.press=False; self.move=False
+
+class SG:
+    def __init__(self, lon0, lat0, dlon, dlat, r=1):
+        """A spherical grid starting at (lon0,lat0) with spacing (dlon,dlat)
+        given in degrees. r=1 by default."""
+        self.r = r
+        self.lon0, self.lat0 = lon0, lat0
+        self.dlon, self.dlat = dlon, dlat
+        deg2rad = np.pi / 180.
+        self.dlam, self.dphi = deg2rad * dlon, deg2rad * dlat
+    def lon(self, j, i):
+        """Returns longitude of nodes in degrees"""
+        return self.lon0 + self.dlon * np.array(i)
+    def lat(self, j, i):
+        """Returns latitude of nodes in degrees"""
+        return self.lat0 + self.dlat * np.array(j)
+    def lam(self, j, i):
+        """Returns longitude of nodes in radians"""
+        deg2rad = np.pi / 180.
+        return self.lon(j, i) * deg2rad
+    def phi(self, j, i):
+        """Returns latitude of nodes in radians"""
+        deg2rad = np.pi / 180.
+        return self.lat(j, i) * deg2rad
+    def dy(self, j, i):
+        """Returns length of latitude segments"""
+        phi = self.phi(j, i)
+        return self.r * ( phi[1:,:] - phi[:-1,:] )
+    def dx(self, j, i):
+        """Returns length of longitude segments"""
+        phi, lam = self.phi(j, i), self.lam(j, i)
+        phi = 0.5 * ( phi[:,1:] + phi[:,:-1] )
+        dlam = lam[:,1:] - lam[:,:-1]
+        return self.r * np.cos(phi) * dlam
+    def area(self, j, i):
+        """Returns areas of cells"""
+        phi, lam = self.phi(j, i), self.lam(j, i)
+        phi = 0.5 * ( phi[:,1:] + phi[:,:-1] )
+        dphi = phi[1:,:] - phi[:-1,:]
+        lam = 0.5 * ( lam[1:,:] + lam[:-1,:] )
+        dlam = lam[:,1:] - lam[:,:-1]
+        return self.r**2 * ( np.sin(phi[1:,:]) - np.sin(phi[:-1,:]) ) * dlam
+    def hi(self, j, i):
+        """Returns scale factor h_lambda"""
+        phi = self.phi(j,i)
+        return self.r * np.cos( phi )
 
 def calc_dist(glon_A1,glat_A1,glon_B1,glat_B1):
     global x_sign
@@ -86,7 +133,7 @@ def calc_dist(glon_A1,glat_A1,glon_B1,glat_B1):
         
     return distance, R1, R2, R3 
 
-def grid_gen(event,debug=True):
+def grid_gen(event, debug=True):
     global MEEP, glat_A1, glon_A1, rlons_3, R1, R2, R3
     c_glon, c_glat = m(event.xdata,event.ydata,inverse=True)
     # PLOT FIRST POINT A
@@ -188,7 +235,7 @@ def grid_gen(event,debug=True):
             debug_plot(X3,np.identity(3),nj,ni,'yo')
             debug_plot(X3,R3,nj,ni,'ro')
             debug_plot(np.dot(inv(R3),X3),R2,nj,ni,'mo')
-         #                      
+         
          # Rotate back to original position
          X1 = np.dot(inv(R1),np.dot(inv(R2),np.dot(inv(R3),X3)))
          X1 = X1.reshape(3,nj,ni)
@@ -205,12 +252,19 @@ def grid_gen(event,debug=True):
 
          m.plot(glons,glats,'bo',latlon=True)
          plt.draw()
+
+
+         g = SG(0,0,10,10,r=Re)
+         print g.lon.shape
          # SAVE AS 2D ARRAY... pre land-masking  
          #np.savez('test_grid', glats, glons)
          MEEP+=1
-         #plt.figure();plt.pcolor(glats); plt.colorbar()
-         #plt.figure();plt.pcolor(glons); plt.colorbar()
-         #plt.show()
+
+
+         plt.figure();plt.pcolor(glats); plt.colorbar()
+         plt.figure();plt.pcolor(glons); plt.colorbar()
+         plt.show()
+
 def coord_3D(rlon,rlat):
     
     x = Re*np.cos(rlat)*np.cos(rlon) 
@@ -226,7 +280,7 @@ def new_latlon(x,y,z):
     return lat,lon
 
 def debug_plot(X,R,nj,ni,kwarg):
-    
+
     Xn = np.dot(inv(R),X)
     Xn = Xn.reshape(3,nj,ni)
     tlats = np.zeros((nj,ni))
@@ -235,12 +289,12 @@ def debug_plot(X,R,nj,ni,kwarg):
     for jj in range(nj):
         for ii in range(ni):
             lat, lon = new_latlon(Xn[0,jj,ii], Xn[1,jj,ii], Xn[2,jj,ii])
-    
+
             tlats[jj,ii] = degrees(lat)
             tlons[jj,ii] = degrees(lon)
     m.plot(tlons,tlats,kwarg,latlon=True)
     plt.draw()
- 
+
 
 MEEP=0
 # approximate radius of earth in km

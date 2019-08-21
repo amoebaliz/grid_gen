@@ -31,38 +31,38 @@ class Click():
         self.press=False; self.move=False
 
 class SG:
-    def __init__(self, lon0, lat0, dlon, dlat, r=1):
-        """A spherical grid starting at (lon0,lat0) with spacing (dlon,dlat)
-        given in degrees. r=1 by default."""
+    def __init__(self, res, r=1,cent_grd=False):
+        """A spherical grid starting at (0,0)  with prescribed spacing (res). 
+           earth's resolution is r=1 by default."""
         self.r = r
-        self.lon0, self.lat0 = lon0, lat0
-        self.dlon, self.dlat = dlon, dlat
-        deg2rad = np.pi / 180.
-        self.dlam, self.dphi = deg2rad * dlon, deg2rad * dlat
-    def lon(self, j, i):
-        """Returns longitude of nodes in degrees"""
-        return self.lon0 + self.dlon * np.array(i)
-    def lat(self, j, i):
-        """Returns latitude of nodes in degrees"""
-        return self.lat0 + self.dlat * np.array(j)
+        self.res = res 
+        # Assumes consistent untis for grid resolution (res) and radius (r)
+        self.res_rad = self.res/self.r
     def lam(self, j, i):
         """Returns longitude of nodes in radians"""
-        deg2rad = np.pi / 180.
-        return self.lon(j, i) * deg2rad
+        return self.res_rad * np.array(i)
     def phi(self, j, i):
         """Returns latitude of nodes in radians"""
-        deg2rad = np.pi / 180.
-        return self.lat(j, i) * deg2rad
+        return self.res_rad * (np.array(j)-cent_grd*[(j-1)/2.])
+    def lon(self, j, i):
+        """Returns longitude of nodes in degrees"""
+        return rad2deg * self.lam(j,i)
+    def lat(self, j, i):
+        """Returns latitude of nodes in degrees"""
+        return rad2deg * self.phi(j,i)
+    # Differencing seems unnecessary - it's just the resolution
     def dy(self, j, i):
         """Returns length of latitude segments"""
         phi = self.phi(j, i)
         return self.r * ( phi[1:,:] - phi[:-1,:] )
+
     def dx(self, j, i):
         """Returns length of longitude segments"""
         phi, lam = self.phi(j, i), self.lam(j, i)
         phi = 0.5 * ( phi[:,1:] + phi[:,:-1] )
         dlam = lam[:,1:] - lam[:,:-1]
         return self.r * np.cos(phi) * dlam
+
     def area(self, j, i):
         """Returns areas of cells"""
         phi, lam = self.phi(j, i), self.lam(j, i)
@@ -71,6 +71,7 @@ class SG:
         lam = 0.5 * ( lam[1:,:] + lam[:-1,:] )
         dlam = lam[:,1:] - lam[:,:-1]
         return self.r**2 * ( np.sin(phi[1:,:]) - np.sin(phi[:-1,:]) ) * dlam
+
     def hi(self, j, i):
         """Returns scale factor h_lambda"""
         phi = self.phi(j,i)
@@ -127,10 +128,15 @@ def calc_dist(glon_A1,glat_A1,glon_B1,glat_B1):
     theta = x_sign*acos(d)
 
     # Rotates first point to equator
+    # R3 = np.array(((1,              0,             0),\
+    #               (0,  np.cos(theta), np.sin(theta)),\
+    #               (0, -np.sin(theta), np.cos(theta)))) 
+       
     R3 = np.array(((1,              0,             0),\
                    (0,  np.cos(theta), np.sin(theta)),\
                    (0, -np.sin(theta), np.cos(theta)))) 
-        
+                       
+ 
     return distance, R1, R2, R3 
 
 def grid_gen(event, debug=True):
@@ -254,15 +260,17 @@ def grid_gen(event, debug=True):
          plt.draw()
 
 
-         g = SG(0,0,10,10,r=Re)
-         print g.lon.shape
+         g = SG(grid_res,r=Re)
+
+         i,j = np.meshgrid( np.arange(ni), np.arange(nj) )
+         plt.figure();plt.pcolor(g.lon(j,i))
          # SAVE AS 2D ARRAY... pre land-masking  
          #np.savez('test_grid', glats, glons)
          MEEP+=1
 
 
-         plt.figure();plt.pcolor(glats); plt.colorbar()
-         plt.figure();plt.pcolor(glons); plt.colorbar()
+         #plt.figure();plt.pcolor(glats); plt.colorbar()
+         #plt.figure();plt.pcolor(glons); plt.colorbar()
          plt.show()
 
 def coord_3D(rlon,rlat):
@@ -276,7 +284,12 @@ def coord_3D(rlon,rlat):
 def new_latlon(x,y,z):
     lat = asin(z/np.abs(Re))
     lon = atan(y/x)
-    if x<0: lon+=np.pi 
+    if x<0: 
+       lon+=np.pi 
+       if lon > np.pi:
+          lon-= 2*np.pi
+    return lat,lon
+
     return lat,lon
 
 def debug_plot(X,R,nj,ni,kwarg):
@@ -299,11 +312,14 @@ def debug_plot(X,R,nj,ni,kwarg):
 MEEP=0
 # approximate radius of earth in km
 Re = 6378.13
+rad2deg = 180. / np.pi
  
 fig = plt.figure(figsize=(11.7,8.3))
 plt.subplots_adjust(left=0.05,right=0.95,top=0.90,bottom=0.05,wspace=0.15,hspace=0.05)
 ax = plt.subplot(111)
-m = Basemap(projection='npstere',boundinglat=-30,lon_0=270,resolution='l')
+
+#m = Basemap(projection='npstere',boundinglat=-30,lon_0=270,resolution='l')
+m = Basemap(resolution='l')
 m.drawmapboundary(fill_color='azure')
 m.fillcontinents(color='palegoldenrod',lake_color='azure')
 m.drawcoastlines()

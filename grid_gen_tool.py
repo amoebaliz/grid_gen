@@ -222,7 +222,10 @@ def coord_3D(rlon,rlat):
 def new_latlon(x,y,z):
     lat = asin(z/np.abs(Re))
     lon = atan(y/x)
-    if x<0: lon+=np.pi 
+    if x<0: 
+       lon+=np.pi
+       if lon > np.pi:
+          lon-= 2*np.pi
     return lat,lon
 
 def debug_plot(X,R,nj,ni,kwarg):
@@ -250,6 +253,8 @@ fig = plt.figure(figsize=(11.7,8.3))
 plt.subplots_adjust(left=0.05,right=0.95,top=0.90,bottom=0.05,wspace=0.15,hspace=0.05)
 ax = plt.subplot(111)
 m = Basemap(projection='npstere',boundinglat=-30,lon_0=270,resolution='l')
+#m = Basemap(resolution='l')
+
 m.drawmapboundary(fill_color='azure')
 m.fillcontinents(color='palegoldenrod',lake_color='azure')
 m.drawcoastlines()

@@ -86,7 +86,7 @@ def calc_dist(glon_A1,glat_A1,glon_B1,glat_B1):
         
     return distance, R1, R2, R3 
 
-def grid_gen(event,debug=True):
+def grid_gen(event,debug=False):
     global MEEP, glat_A1, glon_A1, rlons_3, R1, R2, R3
     c_glon, c_glat = m(event.xdata,event.ydata,inverse=True)
     # PLOT FIRST POINT A
@@ -206,7 +206,7 @@ def grid_gen(event,debug=True):
          m.plot(glons,glats,'bo',latlon=True)
          plt.draw()
          # SAVE AS 2D ARRAY... pre land-masking  
-         #np.savez('test_grid', glats, glons)
+         np.savez('grid_lat_lon', glats, glons)
          MEEP+=1
          #plt.figure();plt.pcolor(glats); plt.colorbar()
          #plt.figure();plt.pcolor(glons); plt.colorbar()

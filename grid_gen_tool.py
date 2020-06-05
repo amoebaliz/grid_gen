@@ -1,3 +1,10 @@
+import sys
+import os
+
+# For basemap in bad conda builds
+proj_lib = os.environ["CONDA_PREFIX"] + '/share/proj/'
+os.environ["PROJ_LIB"] = proj_lib
+
 from mpl_toolkits.basemap import Basemap
 import matplotlib.pyplot as plt
 import numpy as np

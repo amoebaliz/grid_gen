@@ -90,7 +90,7 @@ def calc_dist(glon_A1,glat_A1,glon_B1,glat_B1):
 
     return distance, R1, R2, R3
 
-def grid_gen(event,debug=False):
+def grid_gen(event,debug=True):
     global MEEP, glat_A1, glon_A1, rlons_3, R1, R2, R3
     c_glon, c_glat = m(event.xdata,event.ydata,inverse=True)
     # PLOT FIRST POINT A
@@ -294,12 +294,12 @@ args=parser.parse_args()
 fig = plt.figure(figsize=(11.7,8.3))
 plt.subplots_adjust(left=0.05,right=0.95,top=0.90,bottom=0.05,wspace=0.15,hspace=0.05)
 ax = plt.subplot(111)
-if args.proj == 'default':
-    m = Basemap(resolution='l')
-elif args.proj == 'npstere':
-    m = Basemap(projection='npstere',boundinglat=-30,lon_0=270,resolution='l')
-else:
-    print('unknown projection type')
+#if args.proj == 'default':
+#    m = Basemap(resolution='l')
+#elif args.proj == 'npstere':
+m = Basemap(projection='npstere',boundinglat=40,lon_0=60,resolution='l')
+#else:
+#    print('unknown projection type')
 
 m.drawmapboundary(fill_color='azure')
 m.fillcontinents(color='palegoldenrod',lake_color='azure')
